@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-import 'package:notes_ledger/screens/notes_list_screen.dart';
+import 'package:notes_ledger/screens/login_page.dart';
+import 'package:notes_ledger/screens/signUp_Screen.dart';
 
 final theme = ThemeData(
   colorScheme: ColorScheme.fromSeed(
@@ -26,8 +26,9 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       theme: theme,
-      home: NotesListScreen(),
+      home: LoginPage(),
     );
   }
 }

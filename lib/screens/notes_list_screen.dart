@@ -1,6 +1,7 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:notes_ledger/data/dummy_data.dart';
 import 'package:notes_ledger/model/notes_model.dart';
 import 'package:notes_ledger/screens/add_notes.dart';
@@ -41,7 +42,6 @@ class _NotesListScreenState extends State<NotesListScreen> {
 
     if (result != null) {
       setState(() {
-        // Generate a new ID (you might want to use UUID or another method)
         final newId =
             notes.isEmpty ? 1 : notes.map((n) => n.id).reduce(max) + 1;
 
@@ -52,10 +52,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
         );
 
         notes.add(newNote);
-        // Refresh filtered notes if no search is active
-        if (filteredNotes.length == notes.length - 1) {
-          filteredNotes = notes;
-        }
+        filteredNotes = notes;
       });
     }
   }
@@ -65,8 +62,6 @@ class _NotesListScreenState extends State<NotesListScreen> {
       final index = notes.indexWhere((note) => note.id == updatedNote.id);
       if (index != -1) {
         notes[index] = updatedNote;
-
-        // Update filtered notes if the updated note is present
         final filteredIndex =
             filteredNotes.indexWhere((note) => note.id == updatedNote.id);
         if (filteredIndex != -1) {
@@ -90,7 +85,6 @@ class _NotesListScreenState extends State<NotesListScreen> {
           onPressed: () {
             setState(() {
               notes.add(deletedNote);
-              // Re-apply current filter
               _filterNotes('');
             });
           },
@@ -102,14 +96,18 @@ class _NotesListScreenState extends State<NotesListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: Text(
           'My Notes',
-          style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
-              ),
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        centerTitle: true,
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,61 +115,78 @@ class _NotesListScreenState extends State<NotesListScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: Text(
-              'Hello user',
-              style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                    color: Colors.blueGrey,
-                    fontSize: 22,
-                  ),
+              'Hello, User 👋',
+              style: GoogleFonts.poppins(
+                color: Colors.grey.shade400,
+                fontSize: 20,
+              ),
             ),
           ),
+
+          // Search Bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: TextField(
               onChanged: _filterNotes,
+              style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'Search notes...',
-                prefixIcon: const Icon(Icons.search),
+                hintStyle: TextStyle(color: Colors.grey.shade500),
+                prefixIcon: const Icon(Icons.search, color: Colors.white),
+                filled: true,
+                fillColor: Colors.grey.shade800,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
                 ),
               ),
             ),
           ),
+
+          // Notes Grid with Dynamic Heights
           Expanded(
             child: filteredNotes.isEmpty
                 ? Center(
                     child: Text(
                       'No notes found',
-                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                            color: Colors.grey,
-                          ),
+                      style: GoogleFonts.poppins(
+                        color: Colors.grey.shade500,
+                        fontSize: 16,
+                      ),
                     ),
                   )
-                : GridView.builder(
-                    padding: const EdgeInsets.all(8),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.85,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
+                : Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverMasonryGrid.count(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childCount: filteredNotes.length,
+                          itemBuilder: (context, index) {
+                            return NoteCard(
+                              note: filteredNotes[index],
+                              onNoteUpdated: _handleNoteUpdated,
+                              onNoteDeleted: _handleNoteDeleted,
+                            );
+                          },
+                        ),
+                      ],
                     ),
-                    itemCount: filteredNotes.length,
-                    itemBuilder: (context, index) {
-                      return NoteCard(
-                        note: filteredNotes[index],
-                        onNoteUpdated: _handleNoteUpdated,
-                        onNoteDeleted: _handleNoteDeleted,
-                      );
-                    },
                   ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+
+      // Floating Action Button
+      floatingActionButton: FloatingActionButton(
         onPressed: _addNewNote,
-        label: const Text('Add Note'),
-        icon: const Icon(Icons.add),
+        backgroundColor: Colors.blueGrey,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(50),
+        ),
+        child: const Icon(Icons.add, color: Colors.white, size: 30),
       ),
     );
   }

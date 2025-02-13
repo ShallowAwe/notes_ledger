@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:notes_ledger/model/notes_model.dart';
 
 class EditNoteScreen extends StatefulWidget {
@@ -45,22 +46,25 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
+        backgroundColor: Colors.black, // Match dark theme
         appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
           title: Text(
             'Edit Note',
-            style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
-                ),
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           actions: [
             IconButton(
               onPressed: _hasChanges ? _saveNote : null,
-              icon: const Icon(Icons.save),
+              icon: const Icon(Icons.save, color: Colors.blueAccent),
             ),
             IconButton(
               onPressed: _deleteNote,
-              icon: const Icon(Icons.delete_outline),
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
             ),
           ],
         ),
@@ -70,11 +74,23 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
+                // Title Field
                 TextFormField(
                   controller: _titleController,
-                  decoration: const InputDecoration(
+                  style: const TextStyle(color: Colors.white), // White text
+                  decoration: InputDecoration(
                     labelText: 'Title',
-                    border: OutlineInputBorder(),
+                    labelStyle:
+                        TextStyle(color: Colors.grey.shade400), // Lighter label
+                    hintText: 'Enter title...',
+                    hintStyle:
+                        TextStyle(color: Colors.grey.shade600), // Lighter hint
+                    filled: true,
+                    fillColor: Colors.grey.shade900, // Dark background
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -83,14 +99,27 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
                     return null;
                   },
                 ),
+
                 const SizedBox(height: 16),
+
+                // Content Field
                 Expanded(
                   child: TextFormField(
                     controller: _contentController,
-                    decoration: const InputDecoration(
+                    style: const TextStyle(color: Colors.white), // White text
+                    decoration: InputDecoration(
                       labelText: 'Content',
-                      border: OutlineInputBorder(),
-                      alignLabelWithHint: true,
+                      labelStyle: TextStyle(
+                          color: Colors.grey.shade400), // Lighter label
+                      hintText: 'Write something...',
+                      hintStyle: TextStyle(
+                          color: Colors.grey.shade600), // Lighter hint
+                      filled: true,
+                      fillColor: Colors.grey.shade900, // Dark background
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                     maxLines: null,
                     expands: true,
@@ -117,21 +146,26 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Discard changes?'),
+        backgroundColor: Colors.grey.shade900, // Dark background
+        title: Text(
+          'Discard changes?',
+          style: GoogleFonts.poppins(
+              color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         content: Text(
           'You have unsaved changes. Are you sure you want to discard them?',
-          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                color: Colors.blueGrey.shade100,
-              ),
+          style: GoogleFonts.poppins(color: Colors.grey.shade400),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('CANCEL'),
+            child: const Text('CANCEL',
+                style: TextStyle(color: Colors.blueAccent)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('DISCARD'),
+            child: const Text('DISCARD',
+                style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
@@ -155,19 +189,29 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete note?'),
-        content: const Text('This action cannot be undone.'),
+        backgroundColor: Colors.grey.shade900, // Dark background
+        title: Text(
+          'Delete note?',
+          style: GoogleFonts.poppins(
+              color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'This action cannot be undone.',
+          style: GoogleFonts.poppins(color: Colors.grey.shade400),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL'),
+            child: const Text('CANCEL',
+                style: TextStyle(color: Colors.blueAccent)),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context, 'delete'); // Return delete result
+              Navigator.pop(context);
+              Navigator.pop(context, 'delete');
             },
-            child: const Text('DELETE'),
+            child:
+                const Text('DELETE', style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),

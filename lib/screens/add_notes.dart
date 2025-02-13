@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AddNoteScreen extends StatefulWidget {
   const AddNoteScreen({super.key});
+
   @override
   State<AddNoteScreen> createState() => _AddNoteScreenState();
 }
@@ -14,18 +16,21 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black, // Dark background
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: Text(
           'Add Note',
-          style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
-              ),
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         actions: [
           IconButton(
             onPressed: _saveNote,
-            icon: const Icon(Icons.save),
+            icon: const Icon(Icons.save, color: Colors.blueAccent),
           ),
         ],
       ),
@@ -35,11 +40,21 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
+              // Title Field
               TextFormField(
                 controller: _titleController,
-                decoration: const InputDecoration(
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
                   labelText: 'Title',
-                  border: OutlineInputBorder(),
+                  labelStyle: TextStyle(color: Colors.grey.shade400),
+                  hintText: 'Enter title...',
+                  hintStyle: TextStyle(color: Colors.grey.shade600),
+                  filled: true,
+                  fillColor: Colors.grey.shade900,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -48,15 +63,25 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
                   return null;
                 },
               ),
+
               const SizedBox(height: 16),
+
+              // Content Field
               Expanded(
                 child: TextFormField(
                   controller: _contentController,
-                  decoration: const InputDecoration(
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
                     labelText: 'Content',
-                    fillColor: Colors.grey,
-                    border: OutlineInputBorder(),
-                    alignLabelWithHint: true,
+                    labelStyle: TextStyle(color: Colors.grey.shade400),
+                    hintText: 'Write something...',
+                    hintStyle: TextStyle(color: Colors.grey.shade600),
+                    filled: true,
+                    fillColor: Colors.grey.shade900,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                   maxLines: null,
                   expands: true,
@@ -78,8 +103,6 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
 
   void _saveNote() {
     if (_formKey.currentState!.validate()) {
-      // Return the title and content instead of creating the NotesModel
-      // This allows the parent widget to handle ID generation
       final noteData = {
         'title': _titleController.text,
         'content': _contentController.text,
