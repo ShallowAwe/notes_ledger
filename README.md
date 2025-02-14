@@ -1,4 +1,4 @@
-# 🎵 Notes Ledger (Spring Boot + Flutter)
+# 📝 Notes Ledger (Spring Boot + Flutter)
 
 This project is a **Notes Ledger** built using **Spring Boot** for the backend and **Flutter** for the frontend. The app allows users to create, update, delete, and manage their notes securely with JWT authentication.
 
