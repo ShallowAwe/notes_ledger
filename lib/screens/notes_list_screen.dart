@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'dart:ffi';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -13,19 +11,51 @@ import 'package:uuid/uuid.dart';
 class NotesListScreen extends StatefulWidget {
   const NotesListScreen(
       {super.key, required this.token, required this.username});
-  final dynamic token;
-  final dynamic username;
+
+  final String token;
+  final String username;
 
   @override
   State<NotesListScreen> createState() => _NotesListScreenState();
 }
 
-class _NotesListScreenState extends State<NotesListScreen> {
+class _NotesListScreenState extends State<NotesListScreen>
+    with SingleTickerProviderStateMixin {
   final List<NotesModel> notes = [];
   List<NotesModel> filteredNotes = [];
+  bool isLoading = true;
+  String? errorMessage;
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
 
-  Future<void> _fetchNotes(String username, String token) async {
-    final url = Uri.parse('http://10.0.2.2:8080/user/$username/notes');
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    );
+    _fetchNotes();
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchNotes() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    final url =
+        Uri.parse('http://10.0.2.2:8080/user/${widget.username}/notesFetch');
 
     try {
       final response = await http.get(
@@ -33,32 +63,65 @@ class _NotesListScreenState extends State<NotesListScreen> {
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
-          "Authorization": "Bearer $token",
+          "Authorization": "Bearer ${widget.token}",
         },
       );
 
       if (response.statusCode == 200) {
         final List<dynamic> jsonResponse = jsonDecode(response.body);
+        final parsedNotes = jsonResponse
+            .map((noteJson) {
+              try {
+                return NotesModel.fromJson(noteJson);
+              } catch (e) {
+                _showError('Error parsing note data');
+                return null;
+              }
+            })
+            .where((note) => note != null)
+            .cast<NotesModel>()
+            .toList();
+
         setState(() {
           notes.clear();
-          notes
-              .addAll(jsonResponse.map((e) => NotesModel.fromJson(e)).toList());
+          notes.addAll(parsedNotes);
           filteredNotes = List.from(notes);
+          isLoading = false;
         });
 
-        print("Notes: $notes");
+        _fadeController.reset();
+        _fadeController.forward();
       } else {
-        print("Failed to fetch notes: ${response.statusCode}");
+        setState(() {
+          errorMessage = 'Unable to fetch notes. Please try again later.';
+          isLoading = false;
+        });
       }
     } catch (e) {
-      print("Error: $e");
+      setState(() {
+        errorMessage = 'Network error. Please check your connection.';
+        isLoading = false;
+      });
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    filteredNotes = notes;
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red.shade700,
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 
   void _filterNotes(String query) {
@@ -74,53 +137,95 @@ class _NotesListScreenState extends State<NotesListScreen> {
   Future<void> _addNewNote() async {
     final result = await Navigator.push<Map<String, String>>(
       context,
-      MaterialPageRoute(
-          builder: (context) => AddNoteScreen(
-                token: widget.token,
-                username: widget.username,
-              )),
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => AddNoteScreen(
+          token: widget.token,
+          username: widget.username,
+        ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 1),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            )),
+            child: child,
+          );
+        },
+      ),
     );
 
     if (result != null) {
+      // First update UI immediately
+      final newNote = NotesModel(
+        id: const Uuid().v4(),
+        title: result['title']!,
+        content: result['content']!,
+        createdAt: DateTime.now(),
+      );
+
       setState(() {
-        final newNote = NotesModel(
-          id: Uuid().v4(), // Generates a unique string ID
-          title: result['title']!,
-          content: result['content']!,
-          createdAt: DateTime.now(),
-        );
-
-        notes.add(newNote);
-        filteredNotes = notes;
+        notes.insert(0, newNote);
+        _filterNotes('');
       });
-    }
-  }
 
-  void _handleNoteUpdated(NotesModel updatedNote) {
-    setState(() {
-      final index = notes.indexWhere((note) => note.id == updatedNote.id);
-      if (index != -1) {
-        notes[index] = updatedNote;
-        final filteredIndex =
-            filteredNotes.indexWhere((note) => note.id == updatedNote.id);
-        if (filteredIndex != -1) {
-          filteredNotes[filteredIndex] = updatedNote;
-        }
-      }
-    });
+      // Then fetch from server in background
+      _fetchNotes().then((_) {
+        // Optional: Show refresh complete message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.cloud_sync_outlined, color: Colors.white),
+                const SizedBox(width: 8),
+                const Text('Notes synchronized'),
+              ],
+            ),
+            backgroundColor: Colors.green.shade700,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      });
+
+      // Show immediate success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              const Text('Note added successfully'),
+            ],
+          ),
+          backgroundColor: Colors.green.shade700,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   void _handleNoteDeleted(NotesModel deletedNote) {
     setState(() {
       notes.removeWhere((note) => note.id == deletedNote.id);
-      filteredNotes.removeWhere((note) => note.id == deletedNote.id);
+      _filterNotes('');
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Note deleted'),
+        content: Row(
+          children: [
+            const Icon(Icons.delete_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            const Text('Note deleted'),
+          ],
+        ),
         action: SnackBarAction(
           label: 'UNDO',
+          textColor: Colors.white,
           onPressed: () {
             setState(() {
               notes.add(deletedNote);
@@ -128,6 +233,9 @@ class _NotesListScreenState extends State<NotesListScreen> {
             });
           },
         ),
+        backgroundColor: Colors.grey.shade800,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -147,78 +255,147 @@ class _NotesListScreenState extends State<NotesListScreen> {
           ),
         ),
         centerTitle: true,
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: Text(
-              'Hello, ${widget.username} 👋',
-              style: GoogleFonts.poppins(
-                color: Colors.grey.shade400,
-                fontSize: 20,
-              ),
-            ),
-          ),
-
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: TextField(
-              onChanged: _filterNotes,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Search notes...',
-                hintStyle: TextStyle(color: Colors.grey.shade500),
-                prefixIcon: const Icon(Icons.search, color: Colors.white),
-                filled: true,
-                fillColor: Colors.grey.shade800,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-          ),
-
-          // Notes Grid with Dynamic Heights
-          Expanded(
-            child: filteredNotes.isEmpty
-                ? Center(
-                    child: Text(
-                      'No notes found',
-                      style: GoogleFonts.poppins(
-                        color: Colors.grey.shade500,
-                        fontSize: 16,
-                      ),
-                    ),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: CustomScrollView(
-                      slivers: [
-                        SliverMasonryGrid.count(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 10,
-                          crossAxisSpacing: 10,
-                          childCount: filteredNotes.length,
-                          itemBuilder: (context, index) {
-                            return NoteCard(
-                              note: filteredNotes[index],
-                              onNoteUpdated: _handleNoteUpdated,
-                              onNoteDeleted: _handleNoteDeleted,
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _refreshNotes,
           ),
         ],
       ),
-
-      // Floating Action Button
+      body: RefreshIndicator(
+        onRefresh: _refreshNotes,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Text(
+                'Welcome back, ${widget.username} 👋',
+                style: GoogleFonts.poppins(
+                  color: Colors.grey.shade400,
+                  fontSize: 20,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: TextField(
+                onChanged: _filterNotes,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Search your notes...',
+                  hintStyle: TextStyle(color: Colors.grey.shade500),
+                  prefixIcon: const Icon(Icons.search, color: Colors.white),
+                  filled: true,
+                  fillColor: Colors.grey.shade800,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: isLoading
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Loading your notes...',
+                            style: GoogleFonts.poppins(
+                              color: Colors.grey.shade400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : errorMessage != null
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                size: 48,
+                                color: Colors.grey.shade500,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                errorMessage!,
+                                style: GoogleFonts.poppins(
+                                  color: Colors.grey.shade500,
+                                  fontSize: 16,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: _refreshNotes,
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('Try Again'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blueGrey,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : filteredNotes.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.note_add,
+                                    size: 48,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'No notes found\nTap + to create your first note',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.grey.shade500,
+                                      fontSize: 16,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            )
+                          : Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: CustomScrollView(
+                                slivers: [
+                                  SliverMasonryGrid.count(
+                                    crossAxisCount: 2,
+                                    mainAxisSpacing: 10,
+                                    crossAxisSpacing: 10,
+                                    childCount: filteredNotes.length,
+                                    itemBuilder: (context, index) {
+                                      return FadeTransition(
+                                        opacity: _fadeAnimation,
+                                        child: NoteCard(
+                                          note: filteredNotes[index],
+                                          onNoteUpdated: _handleNoteUpdated,
+                                          onNoteDeleted: _handleNoteDeleted,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+            ),
+          ],
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addNewNote,
         backgroundColor: Colors.blueGrey,
@@ -228,5 +405,19 @@ class _NotesListScreenState extends State<NotesListScreen> {
         child: const Icon(Icons.add, color: Colors.white, size: 30),
       ),
     );
+  }
+
+  Future<void> _refreshNotes() async {
+    await _fetchNotes();
+  }
+
+  void _handleNoteUpdated(NotesModel updatedNote) {
+    setState(() {
+      final index = notes.indexWhere((note) => note.id == updatedNote.id);
+      if (index != -1) {
+        notes[index] = updatedNote;
+        _filterNotes('');
+      }
+    });
   }
 }

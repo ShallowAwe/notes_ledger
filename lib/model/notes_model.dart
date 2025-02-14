@@ -12,17 +12,32 @@ class NotesModel {
   });
 
   factory NotesModel.fromJson(Map<String, dynamic> json) {
-    return NotesModel(
-      id: json['_id'], // Use the MongoDB-generated ObjectId
-      title: json['title'],
-      content: json['content'],
-      createdAt: DateTime.parse(json['createdAt']),
-    );
+    try {
+      // Handle the nested id structure
+      String noteId;
+      if (json['id'] is Map) {
+        // Use timestamp as id since that's unique
+        noteId = json['id']['timestamp'].toString();
+      } else {
+        noteId = json['id'].toString();
+      }
+
+      return NotesModel(
+        id: noteId,
+        title: json['title'] ?? '',
+        content: json['content'] ?? '',
+        createdAt: DateTime.parse(json['createdAt']),
+      );
+    } catch (e) {
+      print('Error parsing note: $json');
+      print('Error details: $e');
+      rethrow;
+    }
   }
 
   Map<String, dynamic> toJson() {
     return {
-      '_id': id, // Keep this field as _id to match MongoDB
+      'id': id,
       'title': title,
       'content': content,
       'createdAt': createdAt.toIso8601String(),

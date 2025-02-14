@@ -14,9 +14,13 @@ class EditNoteScreen extends StatefulWidget {
   State<EditNoteScreen> createState() => _EditNoteScreenState();
 }
 
-class _EditNoteScreenState extends State<EditNoteScreen> {
+class _EditNoteScreenState extends State<EditNoteScreen>
+    with SingleTickerProviderStateMixin {
   late TextEditingController _titleController;
   late TextEditingController _contentController;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
   final _formKey = GlobalKey<FormState>();
   bool _hasChanges = false;
 
@@ -26,8 +30,32 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     _titleController = TextEditingController(text: widget.note.title);
     _contentController = TextEditingController(text: widget.note.content);
 
+    // Initialize animations
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOut,
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOut,
+    ));
+
     _titleController.addListener(_onFieldChanged);
     _contentController.addListener(_onFieldChanged);
+
+    // Start entrance animation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _animationController.forward();
+    });
   }
 
   void _onFieldChanged() {
@@ -44,20 +72,19 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false, // Allows the user to navigate back
-      onPopInvoked: (didPop) async {
-        if (!didPop) return; // Don't interfere if pop already happened
+      canPop: !_hasChanges,
+      onPopInvoked: (bool didPop) async {
+        if (didPop) return;
 
-        bool shouldClose = await _onWillPop(); // Your custom logic
-
-        if (!shouldClose) {
-          return; // Prevent popping if the user cancels
+        final bool shouldPop = await _onWillPop();
+        if (shouldPop) {
+          if (context.mounted) {
+            Navigator.of(context).pop();
+          }
         }
-
-        Navigator.of(context).pop();
       },
       child: Scaffold(
-        backgroundColor: Colors.black, // Match dark theme
+        backgroundColor: Colors.black,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -81,69 +108,87 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
         ),
         body: Form(
           key: _formKey,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                // Title Field
-                TextFormField(
-                  controller: _titleController,
-                  style: const TextStyle(color: Colors.white), // White text
-                  decoration: InputDecoration(
-                    labelText: 'Title',
-                    labelStyle:
-                        TextStyle(color: Colors.grey.shade400), // Lighter label
-                    hintText: 'Enter title...',
-                    hintStyle:
-                        TextStyle(color: Colors.grey.shade600), // Lighter hint
-                    filled: true,
-                    fillColor: Colors.grey.shade900, // Dark background
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: SlideTransition(
+              position: _slideAnimation,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    // Title Field
+                    TextFormField(
+                      controller: _titleController,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'Title',
+                        labelStyle: TextStyle(color: Colors.grey.shade400),
+                        hintText: 'Enter title...',
+                        hintStyle: TextStyle(color: Colors.grey.shade600),
+                        filled: true,
+                        fillColor: Colors.grey.shade900,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                              color: Colors.blueAccent, width: 2),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a title';
+                        }
+                        return null;
+                      },
                     ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a title';
-                    }
-                    return null;
-                  },
-                ),
 
-                const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                // Content Field
-                Expanded(
-                  child: TextFormField(
-                    controller: _contentController,
-                    style: const TextStyle(color: Colors.white), // White text
-                    decoration: InputDecoration(
-                      labelText: 'Content',
-                      labelStyle: TextStyle(
-                          color: Colors.grey.shade400), // Lighter label
-                      hintText: 'Write something...',
-                      hintStyle: TextStyle(
-                          color: Colors.grey.shade600), // Lighter hint
-                      filled: true,
-                      fillColor: Colors.grey.shade900, // Dark background
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                    // Content Field
+                    Expanded(
+                      child: TextFormField(
+                        controller: _contentController,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'Content',
+                          labelStyle: TextStyle(color: Colors.grey.shade400),
+                          hintText: 'Write something...',
+                          hintStyle: TextStyle(color: Colors.grey.shade600),
+                          filled: true,
+                          fillColor: Colors.grey.shade900,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                                color: Colors.blueAccent, width: 2),
+                          ),
+                        ),
+                        maxLines: null,
+                        expands: true,
+                        textAlignVertical: TextAlignVertical.top,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter some content';
+                          }
+                          return null;
+                        },
                       ),
                     ),
-                    maxLines: null,
-                    expands: true,
-                    textAlignVertical: TextAlignVertical.top,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter some content';
-                      }
-                      return null;
-                    },
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -157,11 +202,13 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey.shade900, // Dark background
+        backgroundColor: Colors.grey.shade900,
         title: Text(
           'Discard changes?',
           style: GoogleFonts.poppins(
-              color: Colors.white, fontWeight: FontWeight.bold),
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Text(
           'You have unsaved changes. Are you sure you want to discard them?',
@@ -201,11 +248,13 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey.shade900, // Dark background
+        backgroundColor: Colors.grey.shade900,
         title: Text(
           'Delete note?',
           style: GoogleFonts.poppins(
-              color: Colors.white, fontWeight: FontWeight.bold),
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Text(
           'This action cannot be undone.',
@@ -232,6 +281,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
 
   @override
   void dispose() {
+    _animationController.dispose();
     _titleController.dispose();
     _contentController.dispose();
     super.dispose();
