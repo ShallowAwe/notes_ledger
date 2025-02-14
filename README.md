@@ -19,13 +19,16 @@ This project is a **Notes Ledger** built using **Spring Boot** for the backend a
 
 ### Frontend (Flutter)Flutter (Dart)
  - **State Management:Riverpod (flutter_riverpod)**
-UI Components:Cupertino Icons (cupertino_icons)
-Font Awesome (font_awesome_flutter)
-Google Fonts (google_fonts)
-Staggered Grid View (flutter_staggered_grid_view)
-Transparent Image (transparent_image)
-Networking: http
-Utilities:UUID Generator (uuid)
+ ## UI Components:
+  - **Cupertino Icons (cupertino_icons)**
+ - **Font Awesome (font_awesome_flutter)**
+ - **Google Fonts (google_fonts)**
+ - **Staggered Grid View (flutter_staggered_grid_view)**
+ - **Transparent Image (transparent_image)**
+ ## Networking: 
+  - **http**
+ ## Utilities:
+  - **UUID Generator (uuid)**
 
 ---
 
