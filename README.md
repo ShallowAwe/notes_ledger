@@ -1,34 +1,44 @@
 # 📝 Notes Ledger (Spring Boot + Flutter)
 
-This project is a **Notes Ledger** built using **Spring Boot** for the backend and **Flutter** for the frontend. The app allows users to create, update, delete, and manage their notes securely with JWT authentication.
+A **Notes Ledger** application with a **Spring Boot** backend and **Flutter** frontend. This app allows users to securely create, update, and manage notes using JWT authentication.
+
+---
 
 ## 🚀 Features
-- **User Authentication** (Basic Auth & JWT)
-- **Secure API with Spring Security**
+
+### ✅ Backend (Spring Boot)
+- **User Authentication** (JWT & Basic Auth)
+- **Spring Security for Secure API Access**
 - **CRUD Operations for Notes**
-- **Flutter UI with Supabase Storage for MP3 files**
-- **Audio Playback using `just_audio` package**
+- **MongoDB for Data Storage**
+
+### 🎨 Frontend (Flutter)
+- **Modern UI with Google Fonts & Staggered Grid View**
+- **Supabase Storage for MP3 file uploads**
+- **Audio Playback with `just_audio`**
+- **State Management using Riverpod**
+
+---
 
 ## 🛠️ Tech Stack
+
 ### Backend (Spring Boot)
 - **Spring Boot 3**
-- **Spring Security (JWT Auth)**
+- **Spring Security (JWT Authentication)**
 - **Spring Data MongoDB**
-- **Hibernate**
-- **Maven**
+- **Hibernate & JPA**
+- **Maven for Dependency Management**
 
-### Frontend (Flutter)Flutter (Dart)
- - **State Management:Riverpod (flutter_riverpod)**
- ## UI Components:
-  - **Cupertino Icons (cupertino_icons)**
- - **Font Awesome (font_awesome_flutter)**
- - **Google Fonts (google_fonts)**
- - **Staggered Grid View (flutter_staggered_grid_view)**
- - **Transparent Image (transparent_image)**
- ## Networking: 
-  - **http**
- ## Utilities:
-  - **UUID Generator (uuid)**
+### Frontend (Flutter)
+- **Dart & Flutter SDK**
+- **Riverpod for State Management**
+- **Networking: HTTP package**
+- **UI Components:**
+  - Staggered Grid View
+  - Google Fonts
+  - Cupertino Icons
+  - Font Awesome Icons
+- **UUID Generator for Unique IDs**
 
 ---
 
@@ -56,8 +66,8 @@ This project is a **Notes Ledger** built using **Spring Boot** for the backend a
 
 ### Frontend (Flutter)
 #### Prerequisites
-- **Flutter SDK**
-- **Dart**
+- **Flutter SDK Installed**
+- **Dart Installed**
 
 #### Steps to Run
 1. Navigate to the Flutter directory:
@@ -76,6 +86,7 @@ This project is a **Notes Ledger** built using **Spring Boot** for the backend a
 ---
 
 ## 🛡️ API Endpoints
+
 ### Authentication
 | Method | Endpoint            | Description          |
 |--------|--------------------|----------------------|
@@ -87,24 +98,28 @@ This project is a **Notes Ledger** built using **Spring Boot** for the backend a
 |----------|---------------|--------------------------|
 | `GET`    | `/notes/`      | Fetch all notes          |
 | `POST`   | `/notes/`      | Create a new note        |
-| `PUT`    | `/notes/{id}`  | Update a note            |
-| `DELETE` | `/notes/{id}`  | Delete a note            |
+| `PUT`    | `/notes/{username}`  | Update a note            |
+| `DELETE` | `/notes/{username}`  | Delete a note            |
 
 ---
 
 ## 🎯 Future Enhancements
-- 🔹 Add **Firebase Auth** for login
-- 🔹 Implement **Dark Mode**
-- 🔹 Improve UI/UX with animations
+- 🔹 Implement **Firebase Authentication**
 - 🔹 Add **Offline Mode**
-
-## 🤝 Contributing
-Contributions are welcome! Feel free to fork the repository and submit a pull request.
-
-## 📜 License
-This project is licensed under the MIT License.
+- 🔹 UI Enhancements & Dark Mode
+- 🔹 Implement Note Sharing Feature
 
 ---
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to fork the repository and submit a pull request.
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License.
 
 🔗 **Follow me on GitHub** → [ShallowAwe](https://github.com/ShallowAwe)
 
