@@ -19,8 +19,8 @@ class NoteCard extends StatelessWidget {
     double cardHeight = _calculateCardHeight(note.content);
 
     return Container(
-      width: 180, // Fixed width to make the grid look good
-      height: cardHeight, // Dynamic height
+      width: 170,
+      height: cardHeight,
       margin: const EdgeInsets.all(8),
       child: Card(
         elevation: 4,
@@ -53,7 +53,6 @@ class NoteCard extends StatelessWidget {
                               .onSurface
                               .withAlpha(144),
                         ),
-                    maxLines: 4,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),

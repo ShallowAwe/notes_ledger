@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:notes_ledger/screens/login_page.dart';
-import 'package:notes_ledger/screens/signUp_Screen.dart';
 
 final theme = ThemeData(
   colorScheme: ColorScheme.fromSeed(

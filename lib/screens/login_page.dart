@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:notes_ledger/screens/notes_list_screen.dart';
 import 'package:notes_ledger/screens/signUp_Screen.dart';
+import 'package:http/http.dart' as http;
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -11,6 +14,72 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = true;
+
+  Future<void> _jwtAuthentication(String username, String password) async {
+    final url = Uri.parse('http://10.0.2.2:8080/public/login_jwt');
+    setState(() => _isLoading = true);
+    try {
+      if (username.isEmpty || password.isEmpty) {
+        throw Exception('fields are empty');
+      }
+      final response = await http.post(url,
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          body: jsonEncode({
+            'username': _usernameController.text.trim(),
+            'password': _passwordController.text
+          }));
+      print("Response Status: ${response.statusCode}");
+      print("Response Body: ${response.body}");
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        final token = responseData['token'];
+        print("JWT Token: $token");
+        if (!context.mounted) return;
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => NotesListScreen(
+            token: token,
+            username: _usernameController.text,
+          ),
+        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("login successful! 🎉"),
+            backgroundColor: Colors.greenAccent,
+          ),
+        );
+      } else {
+        if (!context.mounted) return;
+        // Parse error message from response if available
+        final errorMessage =
+            json.decode(response.body)['message'] ?? 'login failed';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print("Error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Error: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -53,12 +122,13 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 24),
                 TextField(
+                  controller: _usernameController,
                   style: TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     labelText: 'Username',
                     labelStyle: TextStyle(color: Colors.grey.shade400),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
+                    fillColor: Colors.white.withAlpha(26),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -71,13 +141,14 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 14),
                 TextField(
+                  controller: _passwordController,
                   obscureText: true,
                   style: TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     labelText: 'Password',
                     labelStyle: TextStyle(color: Colors.grey.shade400),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
+                    fillColor: Colors.white.withAlpha(26),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -99,11 +170,9 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: () {
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (context) => NotesListScreen(),
-                      ));
-                    },
+                    onPressed: () => _jwtAuthentication(
+                        _usernameController.text.trim(),
+                        _passwordController.text),
                     child: Text(
                       'Login',
                       style: GoogleFonts.poppins(

@@ -1,22 +1,59 @@
-import 'dart:math';
+import 'dart:convert';
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:notes_ledger/data/dummy_data.dart';
+import 'package:http/http.dart' as http;
 import 'package:notes_ledger/model/notes_model.dart';
 import 'package:notes_ledger/screens/add_notes.dart';
 import 'package:notes_ledger/widgets/note_card.dart';
+import 'package:uuid/uuid.dart';
 
 class NotesListScreen extends StatefulWidget {
-  const NotesListScreen({super.key});
+  const NotesListScreen(
+      {super.key, required this.token, required this.username});
+  final dynamic token;
+  final dynamic username;
 
   @override
   State<NotesListScreen> createState() => _NotesListScreenState();
 }
 
 class _NotesListScreenState extends State<NotesListScreen> {
-  List<NotesModel> notes = dummyNotes;
+  final List<NotesModel> notes = [];
   List<NotesModel> filteredNotes = [];
+
+  Future<void> _fetchNotes(String username, String token) async {
+    final url = Uri.parse('http://10.0.2.2:8080/user/$username/notes');
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonResponse = jsonDecode(response.body);
+        setState(() {
+          notes.clear();
+          notes
+              .addAll(jsonResponse.map((e) => NotesModel.fromJson(e)).toList());
+          filteredNotes = List.from(notes);
+        });
+
+        print("Notes: $notes");
+      } else {
+        print("Failed to fetch notes: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Error: $e");
+    }
+  }
 
   @override
   void initState() {
@@ -37,18 +74,20 @@ class _NotesListScreenState extends State<NotesListScreen> {
   Future<void> _addNewNote() async {
     final result = await Navigator.push<Map<String, String>>(
       context,
-      MaterialPageRoute(builder: (context) => const AddNoteScreen()),
+      MaterialPageRoute(
+          builder: (context) => AddNoteScreen(
+                token: widget.token,
+                username: widget.username,
+              )),
     );
 
     if (result != null) {
       setState(() {
-        final newId =
-            notes.isEmpty ? 1 : notes.map((n) => n.id).reduce(max) + 1;
-
         final newNote = NotesModel(
-          id: newId,
+          id: Uuid().v4(), // Generates a unique string ID
           title: result['title']!,
           content: result['content']!,
+          createdAt: DateTime.now(),
         );
 
         notes.add(newNote);
@@ -115,7 +154,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: Text(
-              'Hello, User 👋',
+              'Hello, ${widget.username} 👋',
               style: GoogleFonts.poppins(
                 color: Colors.grey.shade400,
                 fontSize: 20,
@@ -156,13 +195,13 @@ class _NotesListScreenState extends State<NotesListScreen> {
                     ),
                   )
                 : Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(10),
                     child: CustomScrollView(
                       slivers: [
                         SliverMasonryGrid.count(
                           crossAxisCount: 2,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 10,
                           childCount: filteredNotes.length,
                           itemBuilder: (context, index) {
                             return NoteCard(

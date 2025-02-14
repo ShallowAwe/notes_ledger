@@ -43,8 +43,19 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
+      canPop: false, // Allows the user to navigate back
+      onPopInvoked: (didPop) async {
+        if (!didPop) return; // Don't interfere if pop already happened
+
+        bool shouldClose = await _onWillPop(); // Your custom logic
+
+        if (!shouldClose) {
+          return; // Prevent popping if the user cancels
+        }
+
+        Navigator.of(context).pop();
+      },
       child: Scaffold(
         backgroundColor: Colors.black, // Match dark theme
         appBar: AppBar(
@@ -180,6 +191,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
         id: widget.note.id,
         title: _titleController.text,
         content: _contentController.text,
+        createdAt: DateTime.now(),
       );
       Navigator.pop(context, updatedNote);
     }
